@@ -1,29 +1,27 @@
 from pathlib import Path
+from flask import Flask, request
+
+app = Flask(__name__)
 
 
 def reverse_text(text: str) -> str:
-    """Reverse text character by character."""
     return text[::-1]
 
 
 def reverse_words(text: str) -> str:
-    """Reverse the order of words."""
     return " ".join(text.split()[::-1])
 
 
 def reverse_lines(text: str) -> str:
-    """Reverse the order of lines."""
     return "\n".join(text.split("\n")[::-1])
 
 
 def check_palindrome(text: str) -> bool:
-    """Check if text is a palindrome (ignoring spaces and case)."""
     cleaned = text.replace(" ", "").lower()
     return cleaned == cleaned[::-1]
 
 
 def get_text_statistics(text: str) -> dict:
-    """Get statistics about text."""
     words = text.split()
 
     return {
@@ -33,23 +31,24 @@ def get_text_statistics(text: str) -> dict:
         "total_lines": len(text.split("\n")),
         "average_word_length": (
             sum(len(word) for word in words) / len(words)
-            if words
-            else 0
+            if words else 0
         ),
-        "unique_words": len(set(word.lower() for word in words)),
+        "unique_words": len(set(word.lower() for word in words))
     }
 
 
 def get_character_codes(text: str) -> str:
-    """Get ASCII/Unicode codes for each character."""
-    codes = [f"{char}:{ord(char)}" for char in text]
-    return " | ".join(codes)
+    return " | ".join(
+        f"{char}:{ord(char)}" for char in text
+    )
 
 
 def reverse_alternating(text: str) -> str:
-    """Reverse every other character."""
     chars = list(text)
-    odd_chars = [chars[i] for i in range(1, len(chars), 2)]
+
+    odd_chars = [
+        chars[i] for i in range(1, len(chars), 2)
+    ]
 
     result = []
     odd_idx = len(odd_chars) - 1
@@ -67,13 +66,12 @@ def reverse_alternating(text: str) -> str:
 def process_file(
     input_file: str,
     operation: str = "reverse",
-    output_file: str | None = None,
+    output_file: str = None
 ):
-    """Process a text file with various operations."""
     file_path = Path(input_file)
 
     if not file_path.exists():
-        return "❌ File not found"
+        return "File not found"
 
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
@@ -85,71 +83,99 @@ def process_file(
     elif operation == "reverse_lines":
         result = reverse_lines(content)
     else:
-        return "❌ Unknown operation"
+        return "Unknown operation"
 
     if output_file:
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(result)
 
-        return f"✅ Processed and saved to {output_file}"
+        return f"Saved to {output_file}"
 
     return result
 
 
-def display_text_analysis(text: str):
-    """Display comprehensive text analysis."""
-    stats = get_text_statistics(text)
+@app.route("/")
+def home():
+    return """
+    <h1>WORLD OF REVERSED SCRIPTS</h1>
 
-    print("\n" + "=" * 50)
-    print("📊 TEXT ANALYSIS")
-    print("=" * 50)
-    print(f"Total Characters: {stats['total_characters']}")
-    print(f"Characters (no spaces): {stats['characters_no_spaces']}")
-    print(f"Total Words: {stats['total_words']}")
-    print(f"Total Lines: {stats['total_lines']}")
-    print(f"Average Word Length: {stats['average_word_length']:.2f}")
-    print(f"Unique Words: {stats['unique_words']}")
+    <form action="/reverse">
+        <input name="text" placeholder="Enter text">
+        <button type="submit">Reverse Text</button>
+    </form>
+
+    <br>
+
+    <form action="/reverse_words">
+        <input name="text" placeholder="Enter text">
+        <button type="submit">Reverse Words</button>
+    </form>
+
+    <br>
+
+    <form action="/palindrome">
+        <input name="text" placeholder="Enter text">
+        <button type="submit">Check Palindrome</button>
+    </form>
+
+    <br>
+
+    <form action="/stats">
+        <input name="text" placeholder="Enter text">
+        <button type="submit">Text Statistics</button>
+    </form>
+
+    <br>
+
+    <form action="/codes">
+        <input name="text" placeholder="Enter text">
+        <button type="submit">Character Codes</button>
+    </form>
+    """
+
+
+@app.route("/reverse")
+def reverse():
+    text = request.args.get("text", "")
+    return reverse_text(text)
+
+
+@app.route("/reverse_words")
+def reverse_words_route():
+    text = request.args.get("text", "")
+    return reverse_words(text)
+
+
+@app.route("/palindrome")
+def palindrome():
+    text = request.args.get("text", "")
 
     if check_palindrome(text):
-        print("✅ This is a palindrome!")
-    else:
-        print("❌ Not a palindrome")
+        return "✅ YES - Palindrome"
 
-    print("=" * 50 + "\n")
+    return "❌ NO - Not a palindrome"
+
+
+@app.route("/stats")
+def stats():
+    text = request.args.get("text", "")
+    data = get_text_statistics(text)
+
+    return f"""
+    Total Characters: {data['total_characters']}<br>
+    Characters No Spaces: {data['characters_no_spaces']}<br>
+    Total Words: {data['total_words']}<br>
+    Total Lines: {data['total_lines']}<br>
+    Average Word Length: {data['average_word_length']:.2f}<br>
+    Unique Words: {data['unique_words']}
+    """
+
+
+@app.route("/codes")
+def codes():
+    text = request.args.get("text", "")
+    return get_character_codes(text)
 
 
 if __name__ == "__main__":
-    print("=== WORLD OF REVERSED SCRIPTS ===\n")
-    print("1. Reverse text")
-    print("2. Reverse words")
-    print("3. Reverse lines")
-    print("4. Text analysis")
-    print("5. Palindrome check")
-    print("6. Show character codes")
-
-    choice = input("\nChoose option (1-6): ").strip() or "1"
-
-    if choice == "4":
-        sample = input("Enter text to analyze: ").strip()
-        display_text_analysis(sample)
-
-    elif choice == "5":
-        sample = input("Enter text to check: ").strip()
-        is_palindrome = check_palindrome(sample)
-        print(f"\nPalindrome: {'✅ YES' if is_palindrome else '❌ NO'}")
-
-    elif choice == "6":
-        sample = input("Enter text: ").strip()
-        print(f"\nCharacter Codes:\n{get_character_codes(sample)}")
-
-    elif choice == "3":
-        sample = input("Enter text: ").strip()
-        print(f"\nReversed:\n{reverse_lines(sample)}")
-
-    elif choice == "2":
-        sample = input("Enter text: ").strip()
-        print(f"\nReversed:\n{reverse_words(sample)}")
-
-    else:
-        sample = input("Enter text to reverse: ").strip()
-        print(f"\nReversed: {reverse_text(sample)}")
+    app.run(host="0.0.0.0", port=5000)
